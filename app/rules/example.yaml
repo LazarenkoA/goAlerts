@@ -1,0 +1,74 @@
+index: "techlog-*" # индекс эластика (используется только для эластика)
+rule_name: "QERR" # имя правила
+ctxField: "aggregations.group" # поле в контексте которого будет выполняться expression, так же дочерние поля будут доступны для notify (например для формирования текста сообщения)
+
+conditions: # правила срабатывания оповещения
+  expression: "spike(value / doc_cout) > 2" # Доступны функции average, median, spike. Пример "spike(doc_cout) > 2"
+
+notify:
+  telegram:
+    bot_token: ""
+    chatID:
+      - ""
+    proxy: ""
+    templateMessage: ""
+  email:
+    smtp: ""
+    userName: ""
+    pass: ""
+    subject: ""
+    templateMessage: ""
+    recipients:
+      - ""
+  cli:
+    comand: "echo"
+  args:
+    - "Ошибка в базе %key%"
+
+shedule: "*/5 * * * *" # расписание в формате cron или @every <duration> (https://pkg.go.dev/github.com/hanagantig/cron?utm_source=godoc#hdr-CRON_Expression_Format)
+
+# текст запроса
+request: '{ 
+  "query": {
+    "bool": {
+      "must": [
+        {
+          "query_string": {
+            "query": "!\"Соединение с сервером баз данных разорвано администратором\" && !\"Сеанс работы завершен администратором\" && !\"Нельзя использовать таблицу без указания всех разделителей\"",
+            "analyze_wildcard": true,
+            "time_zone": "Europe/Moscow"
+          }
+        }
+      ],
+      "filter": [
+        {
+          "match_phrase": {
+            "event": {
+              "query": "QERR"
+            }
+          }
+        },
+        {
+          "range": {
+            "@timestamp": {
+              "gte": "now-1h"
+            }
+          }
+        }
+      ],
+      "should": [],
+      "must_not": []
+    }
+  },
+  "aggs": {
+    "errors": {
+      "terms": {
+        "script": "def m = /[А-я\\s\\t]+/.matcher(doc[''Descr''].value); def result = \"\"; while (m.find()) {result += m.group(0) + \" \" } if(result != \"\") return result; else return doc[''Descr''].value;",
+        "min_doc_count": 10,
+        "size": 10
+      }
+    }
+  },
+  "size": 20,
+  "_source": "hits.hits._index"
+}'

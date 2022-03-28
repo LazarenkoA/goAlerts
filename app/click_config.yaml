@@ -1,0 +1,8 @@
+url: "http://localhost:8123"
+user: "default"
+password: ""
+
+# https://clickhouse.com/docs/ru/interfaces/http/#response-buffering
+max_result_bytes: 0
+buffer_size: 0
+wait_end_of_query: 0

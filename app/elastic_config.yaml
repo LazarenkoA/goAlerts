@@ -1,0 +1,5 @@
+username: ""
+password: ""
+addresses:
+- "http://172.18.1.44/elastic"
+cert: "" # путь к сертификату
