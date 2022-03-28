@@ -31,7 +31,7 @@ goAlerts - это приложение для настройки уведомл�
 
 ### Структура конфига
 Структура конфигурационного файла для разных источников данных может отличаться.
-Пример elasticsearch и сlickhouse
+Пример [elasticsearch](https://github.com/LazarenkoA/goAlerts/blob/main/app/elastic_config.yaml) и [сlickhouse](https://github.com/LazarenkoA/goAlerts/blob/main/app/click_config.yaml)
 
 ### Структура правил
 ```yaml
