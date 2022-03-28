@@ -4,7 +4,7 @@ import (
 	"context"
 	"os"
 
-	app "github.com/LazarenkoA/universal_alerts/app"
+	app "github.com/LazarenkoA/goAlerts/app"
 	"github.com/sirupsen/logrus"
 	"gopkg.in/alecthomas/kingpin.v2"
 )

@@ -5,8 +5,8 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/LazarenkoA/universal_alerts/app/rules"
-	src "github.com/LazarenkoA/universal_alerts/app/source"
+	"github.com/LazarenkoA/goAlerts/app/rules"
+	src "github.com/LazarenkoA/goAlerts/app/source"
 	"github.com/sirupsen/logrus"
 )
 

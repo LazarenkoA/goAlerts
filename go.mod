@@ -1,4 +1,4 @@
-module github.com/LazarenkoA/universal_alerts
+module github.com/LazarenkoA/goAlerts
 
 go 1.18
 

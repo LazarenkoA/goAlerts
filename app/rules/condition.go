@@ -2,7 +2,7 @@ package rules
 
 import (
 	"errors"
-	nfy "github.com/LazarenkoA/universal_alerts/app/notify"
+	nfy "github.com/LazarenkoA/goAlerts/app/notify"
 	"github.com/knetic/govaluate"
 	"github.com/sirupsen/logrus"
 	"regexp"
