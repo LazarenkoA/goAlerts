@@ -19,9 +19,9 @@ jobs:
     - name: Build
       run: go build -v .
 
-    - name: Тесты
-      run: |
-        go test -v -race ./app
-      env:
-        GO111MODULE: on  
+    #- name: Тесты
+    #  run: |
+    #    go test -v -race ./app
+    #  env:
+    #    GO111MODULE: on
 
