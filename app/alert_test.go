@@ -2,7 +2,6 @@ package alert
 
 import (
 	"context"
-	"fmt"
 	"github.com/sirupsen/logrus"
 	"github.com/ungerik/go-dry"
 	"os"
@@ -221,36 +220,41 @@ func (m *mocCl) RequestCheck(string) error {
 
 func Test_Explorer(t *testing.T) {
 	t.Run("testClickhouse", func(t *testing.T) {
-		batFile := createBatFile()
+		outFile, _ := os.CreateTemp("", "*.txt")
+		outFile.Close()
+
+		batFile := createScriptFile(outFile.Name())
 		pathRule := click_rule(batFile)
 
 		dir := filepath.Dir(pathRule)
 
 		defer os.Remove(batFile)
 		defer os.RemoveAll(dir)
+		defer os.Remove(outFile.Name())
 
 		os.Setenv("RULES_DIR", dir)
-		testClickhouse(t)
+		testClickhouse(t, outFile.Name())
 	})
 	t.Run("testElasticsearch", func(t *testing.T) {
-		batFile := createBatFile()
+		outFile, _ := os.CreateTemp("", "*.txt")
+		outFile.Close()
+
+		batFile := createScriptFile(outFile.Name())
 		pathRule := elastic_rule(batFile)
 
 		dir := filepath.Dir(pathRule)
 
 		defer os.Remove(batFile)
+		defer os.Remove(outFile.Name())
 		defer os.RemoveAll(dir)
 
 		os.Setenv("RULES_DIR", dir)
-		testElasticsearch(t)
+		testElasticsearch(t, outFile.Name())
 	})
 }
 
-func testClickhouse(t *testing.T) {
+func testClickhouse(t *testing.T, outFile string) {
 	confPath := click_config()
-	batFile := createBatFile()
-
-	defer os.Remove(batFile)
 	defer os.Remove(confPath)
 
 	e_alert, err := new(Alert).Init("clickhouse::" + confPath)
@@ -270,14 +274,13 @@ func testClickhouse(t *testing.T) {
 		}
 	}()
 
-	time.Sleep(time.Second * 2)
+	time.Sleep(time.Second)
 	cancel()
 
-	if !dry.FileExists("out.txt") {
+	if !dry.FileExists(outFile) {
 		t.Error("файл out.txt не найден")
 	} else {
-		defer os.Remove("out.txt")
-		if str, err := dry.FileGetString("out.txt"); err != nil {
+		if str, err := dry.FileGetString(outFile); err != nil {
 			t.Error(err)
 		} else if strings.Trim(str, "\r\n\"\\ ") != "50, key2" {
 			t.Fatal("содержимое out.txt отличается от ожидаемого")
@@ -285,7 +288,7 @@ func testClickhouse(t *testing.T) {
 	}
 }
 
-func testElasticsearch(t *testing.T) {
+func testElasticsearch(t *testing.T, outFile string) {
 	confPath := elastic_config()
 	defer os.Remove(confPath)
 
@@ -306,13 +309,13 @@ func testElasticsearch(t *testing.T) {
 		}
 	}()
 
-	time.Sleep(time.Second * 2)
+	time.Sleep(time.Second)
 	cancel()
-	if !dry.FileExists("out.txt") {
+
+	if !dry.FileExists(outFile) {
 		t.Error("файл out.txt не найден")
 	} else {
-		defer os.Remove("out.txt")
-		if str, err := dry.FileGetString("out.txt"); err != nil {
+		if str, err := dry.FileGetString(outFile); err != nil {
 			t.Error(err)
 		} else if strings.Trim(str, "\r\n\"\\ ") != "56137901, key2" {
 			t.Fatal("содержимое out.txt отличается от ожидаемого")
@@ -340,68 +343,6 @@ password: ""`
 
 	tmpFile, _ := os.CreateTemp("", "*.yaml")
 	tmpFile.WriteString(body)
-	tmpFile.Close()
-
-	return tmpFile.Name()
-}
-
-func elastic_rule(batFile string) string {
-	body := fmt.Sprintf(`index: "techlog-*" # индекс эластика
-rule_name: "Test_elastic" # имя правила
-ctxField: "aggregations.errors.buckets"
-
-condition: # правила срабатывания оповещения
-  expression: "[timelock.value] > 10 && key == \"key2\"" 
-
-notify:
-  cli:
-    comand: "cmd"
-    args:
-      - /C
-      - %s "%%timelock.value%%, %%key%%"
-shedule: "@every 1s"
-
-# текст запроса в формате
-request: ''`, batFile)
-
-	os.Mkdir(os.TempDir()+"\\elastic", os.ModeDir)
-	tmpFile, _ := os.CreateTemp(os.TempDir()+"\\elastic", "*.yaml")
-	tmpFile.WriteString(body)
-	tmpFile.Close()
-
-	return tmpFile.Name()
-}
-
-func click_rule(batFile string) string {
-
-	body := fmt.Sprintf(`rule_name: "Test_click" # имя правила
-ctxField: "data" 
-
-condition: # правила срабатывания оповещения
-  expression: "value >= 50 && Name == \"key2\"" 
-
-notify:
-  cli:
-    comand: "cmd"
-    args:
-      - /C
-      - %s "%%value%%, %%Name%%"
-shedule: "@every 1s"
-
-# текст запроса в формате
-request: ''`, batFile)
-
-	os.Mkdir(os.TempDir()+"\\Clickhouse", os.ModeDir)
-	tmpFile, _ := os.CreateTemp(os.TempDir()+"\\Clickhouse", "*.yaml")
-	tmpFile.WriteString(body)
-	tmpFile.Close()
-
-	return tmpFile.Name()
-}
-
-func createBatFile() string {
-	tmpFile, _ := os.CreateTemp("", "*.bat")
-	tmpFile.WriteString("@echo %1 > out.txt")
 	tmpFile.Close()
 
 	return tmpFile.Name()
