@@ -73,11 +73,10 @@ func (r *Rules) Rules() []*Rule {
 	return r.rules
 }
 
-func (r *Rules) RulesLoad() error {
+func (r *Rules) RulesLoad(checkMode bool) error {
 	rules_dir := os.Getenv(envName)
 	if rules_dir == "" {
 		r.logger.Warnf("не задан каталог с правилами (правила будут искаться в текущем каталоге). Путь задается в переменной окружения %s", envName)
-		//rules_dir, _ = os.Getwd()
 		return errors.New("не задан каталог с правилами ")
 	}
 	if !dry.FileExists(rules_dir) {
@@ -87,7 +86,9 @@ func (r *Rules) RulesLoad() error {
 
 	if files, err := FileFind(rules_dir, "*.yaml"); err == nil {
 		for _, filePath := range files {
-			r.appendRule(filePath)
+			if err = r.appendRule(filePath); err != nil && checkMode {
+				return fmt.Errorf("ошибка загрузки роли: %w", err)
+			}
 		}
 	} else {
 		return err
@@ -96,28 +97,30 @@ func (r *Rules) RulesLoad() error {
 	return nil
 }
 
-func (r *Rules) appendRule(filePath string) {
+func (r *Rules) appendRule(filePath string) (err error) {
+	defer func() {
+		if err != nil {
+			r.logger.WithError(err).Error()
+		}
+	}()
+
 	if !dry.FileExists(filePath) {
-		r.logger.Warnf("файл правил %q не найден", filePath)
+		return fmt.Errorf("файл правил %q не найден", filePath)
 	}
 	data, err := dry.FileGetBytes(filePath, time.Second*5)
 	if err != nil {
-		r.logger.WithError(err).Warnf("файл правил %q пропущен", filePath)
-		return
+		return fmt.Errorf("файл правил %q пропущен", filePath)
 	}
 
 	newRule := new(Rule)
 	if err = yaml.Unmarshal(data, newRule); err != nil {
-		r.logger.WithError(err).Warnf("файл правил %q пропущен", filePath)
-		return
+		return fmt.Errorf("файл правил %q пропущен", filePath)
 	}
 	if newRule.RuleName == "" {
-		r.logger.Warnf("файл правил %q пропущен, не заполнено имя", filePath)
-		return
+		return fmt.Errorf("файл правил %q пропущен, не заполнено имя", filePath)
 	}
 	if newRule.Notify == nil {
-		r.logger.Warnf("файл правил %q пропущен, не заполнен параметр notify", filePath)
-		return
+		return fmt.Errorf("файл правил %q пропущен, не заполнен параметр notify", filePath)
 	}
 
 	newRule.logger = r.logger.WithField("name", newRule.RuleName)
@@ -126,6 +129,8 @@ func (r *Rules) appendRule(filePath string) {
 
 	r.rules = append(r.rules, newRule)
 	r.logger.Infof("Правило %q успешно загружено", newRule.RuleName)
+
+	return nil
 }
 
 func (r *Rule) Run(ctx context.Context, wg *sync.WaitGroup, src Isource) {

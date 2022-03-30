@@ -11,14 +11,16 @@ import (
 )
 
 type Alert struct {
-	logger *logrus.Entry
-	source rules.Isource
+	logger    *logrus.Entry
+	source    rules.Isource
+	checkMode bool
 }
 
 /////////////////////////////////////////////
 
-func (a *Alert) Init(confPath string) (result *Alert, err error) {
+func (a *Alert) Init(confPath string, checkMode bool) (result *Alert, err error) {
 	a.logger = logrus.WithField("name", "main")
+	a.checkMode = checkMode
 
 	if parts := strings.Split(confPath, "::"); len(parts) != 2 {
 		a.logger.Info("путь должен задаваться как type::filePath. Например, elastic::C:\\config.yaml")
@@ -44,7 +46,7 @@ func (a *Alert) factory(stype, confPath string) rules.Isource {
 
 func (a *Alert) Run(ctx context.Context) error {
 	r := new(rules.Rules).Init(a.logger)
-	if err := r.RulesLoad(); err != nil {
+	if err := r.RulesLoad(a.checkMode); err != nil {
 		return err
 	}
 
