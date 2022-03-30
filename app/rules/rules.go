@@ -24,7 +24,8 @@ type Isource interface {
 }
 
 type Inotify interface {
-	Notify([]interface{}, *logrus.Entry)
+	Notify([]interface{})
+	CheckParams() error
 }
 
 type notifyConf struct {
@@ -72,7 +73,7 @@ func (r *Rules) Rules() []*Rule {
 	return r.rules
 }
 
-func (r *Rules) RulesLoade() error {
+func (r *Rules) RulesLoad() error {
 	rules_dir := os.Getenv(envName)
 	if rules_dir == "" {
 		r.logger.Warnf("не задан каталог с правилами (правила будут искаться в текущем каталоге). Путь задается в переменной окружения %s", envName)
@@ -112,6 +113,10 @@ func (r *Rules) appendRule(filePath string) {
 	}
 	if newRule.RuleName == "" {
 		r.logger.Warnf("файл правил %q пропущен, не заполнено имя", filePath)
+		return
+	}
+	if newRule.Notify == nil {
+		r.logger.Warnf("файл правил %q пропущен, не заполнен параметр notify", filePath)
 		return
 	}
 
@@ -176,13 +181,13 @@ func (r *Rule) invoke(src Isource) {
 	}
 	if r.Notify != nil {
 		if r.Notify.CLI != nil {
-			r.notify(r.Notify.CLI, filteredData)
+			r.notify(r.Notify.CLI.Init(r.logger), filteredData)
 		}
 		if r.Notify.Telegram != nil {
-			r.notify(r.Notify.Telegram, filteredData)
+			r.notify(r.Notify.Telegram.Init(r.logger), filteredData)
 		}
 		if r.Notify.Email != nil {
-			r.notify(r.Notify.Email, filteredData)
+			r.notify(r.Notify.Email.Init(r.logger), filteredData)
 		}
 	}
 }
@@ -192,7 +197,9 @@ func (r *Rule) notify(ntf Inotify, filteredData []interface{}) {
 		return
 	}
 
-	ntf.Notify(filteredData, r.logger)
+	if err := ntf.CheckParams(); err == nil {
+		ntf.Notify(filteredData)
+	}
 }
 
 //func (r *Rule) createNotify() {

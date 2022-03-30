@@ -2,6 +2,7 @@ package notify
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/proxy"
@@ -24,19 +25,16 @@ type Telegram struct {
 
 const telegramAPI = "https://api.telegram.org"
 
-func (tel *Telegram) Notify(items []interface{}, l *logrus.Entry) {
+func (tel *Telegram) Init(logger *logrus.Entry) *Telegram {
+	tel.logger = logger.WithField("notifyType", "Telegram")
+	return tel
+}
+
+func (tel *Telegram) Notify(items []interface{}) {
 	if len(items) == 0 {
 		return
 	}
-	if tel.logger == nil {
-		tel.logger = l
-	}
 	tel.logger.Info("оповещение Telegram")
-
-	if tel.Bot_token == "" {
-		tel.logger.Error("отправка не выполнена, не заполнен Bot_token")
-		return
-	}
 
 	for _, item := range items {
 		message := tel.buildMessages(tel.TemplateMessage, item)
@@ -108,4 +106,16 @@ func (tel *Telegram) createHttpClient() {
 		//Jar:     cookieJar,
 		Timeout: time.Minute,
 	}
+}
+
+func (tel *Telegram) CheckParams() error {
+	if tel.Bot_token == "" {
+		return errors.New("не заполнен Bot_token")
+	}
+
+	if len(tel.ChatID) == 0 {
+		return errors.New("не список получателей")
+	}
+
+	return nil
 }

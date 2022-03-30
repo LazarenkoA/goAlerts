@@ -2,6 +2,8 @@ package alert
 
 import (
 	"context"
+	"fmt"
+	temail "github.com/LazarenkoA/temp-Email"
 	"github.com/sirupsen/logrus"
 	"github.com/ungerik/go-dry"
 	"os"
@@ -239,8 +241,24 @@ func Test_Explorer(t *testing.T) {
 		outFile, _ := os.CreateTemp("", "*.txt")
 		outFile.Close()
 
+		email := ""
+		cResult := make(chan *temail.Result, 1) // размер канала обязательно должен быть 1 или больше
+		if err := createEmail(cResult); err == nil {
+			// Читаем email
+			email = (<-cResult).Email
+		} else {
+			t.Errorf("ошибка создания временного email '%s'", err.Error())
+			// ждем секунду выполнения правила
+			go func() {
+				time.Sleep(time.Second)
+				cResult <- &temail.Result{
+					Error: err,
+				}
+			}()
+		}
+
 		batFile := createScriptFile(outFile.Name())
-		pathRule := elastic_rule(batFile)
+		pathRule := elastic_rule(batFile, email)
 
 		dir := filepath.Dir(pathRule)
 
@@ -249,7 +267,7 @@ func Test_Explorer(t *testing.T) {
 		defer os.RemoveAll(dir)
 
 		os.Setenv("RULES_DIR", dir)
-		testElasticsearch(t, outFile.Name())
+		testElasticsearch(t, outFile.Name(), cResult)
 	})
 }
 
@@ -288,7 +306,7 @@ func testClickhouse(t *testing.T, outFile string) {
 	}
 }
 
-func testElasticsearch(t *testing.T, outFile string) {
+func testElasticsearch(t *testing.T, outFile string, cResult chan *temail.Result) {
 	confPath := elastic_config()
 	defer os.Remove(confPath)
 
@@ -309,7 +327,11 @@ func testElasticsearch(t *testing.T, outFile string) {
 		}
 	}()
 
-	time.Sleep(time.Second)
+	// Ожидаем подтверждения
+	if r := <-cResult; r == nil || r.Error != nil {
+		t.Error("ошибка проверки оповещения на email, не дождались письма")
+	}
+
 	cancel()
 
 	if !dry.FileExists(outFile) {
@@ -346,4 +368,24 @@ password: ""`
 	tmpFile.Close()
 
 	return tmpFile.Name()
+}
+
+func createEmail(cResult chan *temail.Result) error {
+	factivation := func(from, body string) bool {
+		// Если функция возвращает true это значит что почта подтверждена и нам она больше не нужна.
+		// После подтверждения или по таймауту (задается в настройках) временная почта удаляется
+		return strings.Trim(body, " ") == "Ошибка в базе key2" && from == "mika.temp25@mail.ru"
+	}
+
+	newEmail := new(temail.OneSecmail).Create(&temail.TmpEmailConf{
+		Result:     cResult,          // канал для результата
+		Timeout:    time.Second * 30, // Таймаут, в течение которого будет ожидаться письмо с подтверждением
+		Activation: factivation,      // функция для обработки входящих сообщений
+	})
+
+	if err := newEmail.NewRegistration(); err != nil {
+		return fmt.Errorf("произошла ошибка при регистрации почты '%s'", err.Error())
+	}
+
+	return nil
 }

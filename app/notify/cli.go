@@ -2,6 +2,7 @@ package notify
 
 import (
 	"bytes"
+	"errors"
 	"github.com/sirupsen/logrus"
 	"os/exec"
 	"strings"
@@ -14,13 +15,16 @@ type CLI struct {
 	Args   []string `yaml:"args"`
 }
 
-func (cli *CLI) Notify(items []interface{}, l *logrus.Entry) {
+func (cli *CLI) Init(logger *logrus.Entry) *CLI {
+	cli.logger = logger.WithField("notifyType", "CLI")
+	return cli
+}
+
+func (cli *CLI) Notify(items []interface{}) {
 	if len(items) == 0 {
 		return
 	}
-	if cli.logger == nil {
-		cli.logger = l
-	}
+
 	cli.logger.Info("оповещение CLI")
 
 	for _, item := range items {
@@ -54,4 +58,13 @@ func (cli *CLI) run(args []string) {
 	}
 	cli.logger.Debug("Stdout: ", cmd.Stdout.(*bytes.Buffer).String())
 	cli.logger.Debug("Stderr: ", cmd.Stderr.(*bytes.Buffer).String())
+}
+
+func (cli *CLI) CheckParams() error {
+	cli.Comand = strings.Trim(cli.Comand, " ")
+	if len(cli.Comand) == 0 {
+		return errors.New("команда не заполнена")
+	}
+
+	return nil
 }

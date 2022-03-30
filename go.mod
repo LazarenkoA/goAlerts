@@ -14,6 +14,7 @@ require (
 )
 
 require (
+	github.com/LazarenkoA/temp-Email v0.0.0-20220329152457-d43b779c21b6 // indirect
 	github.com/alecthomas/template v0.0.0-20190718012654-fb15b899a751 // indirect
 	github.com/alecthomas/units v0.0.0-20211218093645-b94a6e3cc137 // indirect
 	github.com/go-redsync/redsync/v4 v4.3.0 // indirect

@@ -44,7 +44,7 @@ func (a *Alert) factory(stype, confPath string) rules.Isource {
 
 func (a *Alert) Run(ctx context.Context) error {
 	r := new(rules.Rules).Init(a.logger)
-	if err := r.RulesLoade(); err != nil {
+	if err := r.RulesLoad(); err != nil {
 		return err
 	}
 
