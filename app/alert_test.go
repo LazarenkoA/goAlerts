@@ -275,7 +275,7 @@ func testClickhouse(t *testing.T, outFile string) {
 	confPath := click_config()
 	defer os.Remove(confPath)
 
-	e_alert, err := new(Alert).Init("clickhouse::" + confPath)
+	e_alert, err := new(Alert).Init("clickhouse::"+confPath, false)
 	if err != nil {
 		t.Error(err)
 		return
@@ -310,7 +310,7 @@ func testElasticsearch(t *testing.T, outFile string, cResult chan *temail.Result
 	confPath := elastic_config()
 	defer os.Remove(confPath)
 
-	e_alert, err := new(Alert).Init("elastic::" + confPath)
+	e_alert, err := new(Alert).Init("elastic::"+confPath, false)
 	if err != nil {
 		t.Error(err)
 		return
