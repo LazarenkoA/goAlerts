@@ -44,8 +44,8 @@ func (tel *Telegram) Notify(items []interface{}) {
 
 func (tel *Telegram) send(message string) {
 	for _, id := range tel.ChatID {
-		tel.sendRequest(id, message)
 		tel.logger.Debugf("отправка сообщения в чат %v", id)
+		tel.sendRequest(id, message)
 	}
 }
 

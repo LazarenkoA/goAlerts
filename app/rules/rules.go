@@ -114,7 +114,7 @@ func (r *Rules) appendRule(filePath string) (err error) {
 
 	newRule := new(Rule)
 	if err = yaml.Unmarshal(data, newRule); err != nil {
-		return fmt.Errorf("файл правил %q пропущен", filePath)
+		return fmt.Errorf("файл правил %q пропущен, ошибка чтения файла: %w", filePath, err)
 	}
 	if newRule.RuleName == "" {
 		return fmt.Errorf("файл правил %q пропущен, не заполнено имя", filePath)
