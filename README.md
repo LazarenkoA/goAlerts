@@ -48,7 +48,7 @@ notify:
     bot_token: ""  
     chatID:  # массив ID чатов для уведомления
       - ""  
-    proxy: ""  # tcp прокси
+    proxy: ""  # SOCKS5/HTTP прокси
     templateMessage: "❗Ошибки запроса\nЗа последние 8 часов выявлено %doc_count% ошибок запроса, ошибка \"%key%\""
   email:  
     smtp: ""  

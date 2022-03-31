@@ -80,22 +80,28 @@ func (tel *Telegram) createHttpClient() {
 	httpTransport := &http.Transport{}
 	if tel.Proxy != "" {
 		tel.logger.Debug("используем прокси " + tel.Proxy)
-		httpTransport.DialContext = func(ctx context.Context, network, addr string) (net.Conn, error) {
-			select {
-			case <-ctx.Done():
-				return nil, nil
-			default:
-			}
 
-			dialer, err := proxy.SOCKS5("tcp", tel.Proxy, nil, proxy.Direct)
-			if err != nil {
-				tel.logger.WithField("Прокси", tel.Proxy).WithError(err).Error("ошибка соединения с прокси")
-				return nil, err
-			}
+		if pURL, err := url.Parse(tel.Proxy); err == nil {
+			httpTransport.Proxy = http.ProxyURL(pURL)
+		} else {
+			httpTransport.DialContext = func(ctx context.Context, network, addr string) (net.Conn, error) {
+				select {
+				case <-ctx.Done():
+					return nil, nil
+				default:
+				}
 
-			return dialer.Dial(network, addr)
+				dialer, err := proxy.SOCKS5("tcp", tel.Proxy, nil, proxy.Direct)
+				if err != nil {
+					tel.logger.WithField("Прокси", tel.Proxy).WithError(err).Error("ошибка соединения с прокси")
+					return nil, err
+				}
+
+				return dialer.Dial(network, addr)
+			}
 		}
 	}
+	//httpTransport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true} //set ssl
 
 	//cookieJar, _ := cookiejar.New(nil)
 	tel.httpClient = &http.Client{

@@ -10,7 +10,7 @@ notify:
     bot_token: ""
     chatID:
       - ""
-    proxy: ""
+    proxy: "https://172.17.1.5:8888"
     templateMessage: ""
   email:
     smtp: ""
