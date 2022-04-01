@@ -29,7 +29,7 @@ func main() {
 	} else if *vverbose {
 		logrus.SetLevel(logrus.Level(5)) // Debug
 	} else {
-		logrus.SetLevel(logrus.Level(2)) // Error
+		logrus.SetLevel(logrus.Level(3)) // Error/warning
 	}
 
 	if alert, err := new(app.Alert).Init(*confPath, *checkMode); err == nil {
