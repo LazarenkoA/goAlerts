@@ -9,6 +9,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 )
 
 type Number interface {
@@ -19,7 +20,7 @@ type Сondition struct {
 	Expression string `json:"expression"`
 
 	logger *logrus.Entry
-	buff   []int64
+	buff   sync.Map
 }
 
 const buffSize = 10
@@ -31,22 +32,38 @@ func (c *Сondition) Init(logger *logrus.Entry) {
 func (c *Сondition) filterByCondition(matches []interface{}) (resp []interface{}) {
 	c.logger.Debug("фильтрация по условию")
 
-	appendBuff := func(arg interface{}) {
+	appendBuff := func(arg interface{}, key string) {
 		switch v := arg.(type) {
 		case float64:
-			c.buff = append(c.buff, int64(v))
-			if len(c.buff) > buffSize {
-				c.buff = c.buff[len(c.buff)-buffSize:]
+			buff, _ := c.buff.Load(key)
+			if buff == nil {
+				buff = []int64{}
 			}
+
+			buff = append(buff.([]int64), int64(v))
+			if l := len(buff.([]int64)); l > buffSize {
+				buff = buff.([]int64)[l-buffSize:]
+			}
+
+			c.buff.Store(key, buff)
 		}
 	}
 
 	functions := map[string]govaluate.ExpressionFunction{
 		"spike": func(args ...interface{}) (interface{}, error) {
-			if len(args) == 1 {
-				appendBuff(args[0])
-				sp := spike(c.buff)
-				c.logger.WithField("spike", sp).WithField("buff", c.buff).Debug()
+			if len(args) >= 1 && len(args) <= 2 {
+				key := ""
+				if len(args) == 2 {
+					if _, ok := args[1].(string); !ok {
+						return nil, errors.New("spike: второй параметр должен быть строкой")
+					}
+					key = args[1].(string)
+				}
+
+				appendBuff(args[0], key)
+				buff, _ := c.buff.Load(key)
+				sp := spike(buff.([]int64))
+				c.logger.WithField("spike", sp).WithField("key", key).WithField("buff", buff.([]int64)).Debug()
 
 				return float64(sp), nil
 			} else {
@@ -55,10 +72,11 @@ func (c *Сondition) filterByCondition(matches []interface{}) (resp []interface{
 		},
 		"average": func(args ...interface{}) (interface{}, error) {
 			if len(args) == 1 {
-				appendBuff(args[0])
-				av := average(c.buff)
+				appendBuff(args[0], "")
+				buff, _ := c.buff.Load("")
+				av := average(buff.([]int64))
 
-				c.logger.WithField("average", av).WithField("buff", c.buff).Debug()
+				c.logger.WithField("average", av).WithField("buff", buff.([]int64)).Debug()
 
 				return float64(av), nil
 			} else {
@@ -67,10 +85,11 @@ func (c *Сondition) filterByCondition(matches []interface{}) (resp []interface{
 		},
 		"mediana": func(args ...interface{}) (interface{}, error) {
 			if len(args) == 1 {
-				appendBuff(args[0])
-				m := mediana(c.buff)
+				appendBuff(args[0], "")
+				buff, _ := c.buff.Load("")
+				m := mediana(buff.([]int64))
 
-				c.logger.WithField("mediana", m).WithField("buff", c.buff).Debug()
+				c.logger.WithField("mediana", m).WithField("buff", buff.([]int64)).Debug()
 
 				return float64(m), nil
 			} else {

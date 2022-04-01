@@ -82,7 +82,7 @@ func (r *Rules) RulesLoad(checkMode bool) error {
 	if !dry.FileExists(rules_dir) {
 		return fmt.Errorf("каталог %q не найден", rules_dir)
 	}
-	r.logger.Debugf("чтение правил из каталога %q", rules_dir)
+	r.logger.Infof("чтение правил из каталога %q", rules_dir)
 
 	if files, err := FileFind(rules_dir, "*.yaml"); err == nil {
 		for _, filePath := range files {

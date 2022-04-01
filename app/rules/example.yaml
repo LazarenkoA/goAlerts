@@ -3,7 +3,7 @@ rule_name: "QERR" # имя правила
 ctxField: "aggregations.group" # поле в контексте которого будет выполняться expression, так же дочерние поля будут доступны для notify (например для формирования текста сообщения)
 
 conditions: # правила срабатывания оповещения
-  expression: "spike(value / doc_cout) > 2" # Доступны функции average, median, spike. Пример "spike(doc_cout) > 2"
+  expression: "spike(value / doc_cout) > 2" # Доступны функции average, mediana, spike. Пример "spike(doc_cout) > 2"
 
 notify:
   telegram:
