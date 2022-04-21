@@ -106,7 +106,7 @@ func (n *Email) send() {
 
 	err := smtp.SendMail(n.SMTP, auth, n.UserName, n.Recipients, []byte(message))
 	if err != nil {
-		n.logger.Errorf("ошибка при отправке email: %s", strings.Join(n.Recipients, "; "))
+		n.logger.WithError(err).Errorf("ошибка при отправке email: %s", strings.Join(n.Recipients, "; "))
 	} else {
 		n.logger.Infof("оповещение отправлено, получатели %s", strings.Join(n.Recipients, "; "))
 	}
