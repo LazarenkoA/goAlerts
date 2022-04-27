@@ -32,6 +32,7 @@ type notifyConf struct {
 	Telegram *nfy.Telegram `yaml:"telegram"`
 	Email    *nfy.Email    `yaml:"email"`
 	CLI      *nfy.CLI      `yaml:"cli"`
+	HTTP     *nfy.HTTP     `yaml:"http"`
 }
 
 type Rule struct {
@@ -193,6 +194,9 @@ func (r *Rule) invoke(src Isource) {
 		}
 		if r.Notify.Email != nil {
 			r.notify(r.Notify.Email.Init(r.logger), filteredData)
+		}
+		if r.Notify.HTTP != nil {
+			r.notify(r.Notify.HTTP.Init(r.logger), filteredData)
 		}
 	}
 }

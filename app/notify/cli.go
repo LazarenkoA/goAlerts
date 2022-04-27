@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"github.com/sirupsen/logrus"
+	"os"
 	"os/exec"
 	"strings"
 )
@@ -13,10 +14,20 @@ type CLI struct {
 
 	Comand string   `yaml:"comand"`
 	Args   []string `yaml:"args"`
+	Env    []string `yaml:"env"`
 }
 
 func (cli *CLI) Init(logger *logrus.Entry) *CLI {
 	cli.logger = logger.WithField("notifyType", "CLI")
+
+	for _, env := range cli.Env {
+		cli.logger.WithField("env", env).Info("установка переменных окружения")
+
+		if parts := strings.Split(env, "="); len(parts) == 2 {
+			os.Setenv(parts[0], parts[1])
+		}
+	}
+
 	return cli
 }
 

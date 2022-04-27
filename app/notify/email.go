@@ -86,9 +86,12 @@ func (n *Email) CheckParams() error {
 }
 
 func (n *Email) send() {
-	n.logger.Debugf("отправка сообщения %v", n.Recipients)
+	n.logger.Debugf("отправка сообщения получателям: %v", n.Recipients)
 
-	auth := smtp.PlainAuth("", n.UserName, n.Pass, strings.Split(n.SMTP, ":")[0])
+	var auth smtp.Auth
+	if n.Pass != "" {
+		auth = smtp.PlainAuth("", n.UserName, n.Pass, strings.Split(n.SMTP, ":")[0])
+	}
 
 	header := make(map[string]string)
 	header["From"] = n.UserName

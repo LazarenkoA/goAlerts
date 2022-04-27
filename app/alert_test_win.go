@@ -54,6 +54,13 @@ condition: # правила срабатывания оповещения
   expression: "value >= 50 && Name == \"key2\"" 
 
 notify:
+  http:
+    url: "https://1c-fresh.parma.tech/TelegramRequestsProxy/toChat"
+    method: "GET"
+    params:
+      - "txt=%%value%%, %%Name%%"
+      - "botToken=832480422:AAGO9Lm8ekPofPGKTg31oswzRTNcH4ffhCw"
+      - "chatID=-599333313,251159934"
   cli:
     comand: "cmd"
     args:
