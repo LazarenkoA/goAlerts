@@ -21,7 +21,7 @@ notify:
     recipients:
       - ""
   cli:
-    comand: "echo"
+    command: "echo"
   args:
     - "Ошибка в базе %key%"
 

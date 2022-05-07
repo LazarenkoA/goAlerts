@@ -59,7 +59,7 @@ notify:
     recipients:  # массив email адресов для уведомления
       - ""  
   cli:  
-    comand: "echo"  
+    command: "echo"  
   args:  
       - "Ошибка в базе %key%"   
   env:  # переменные окружения

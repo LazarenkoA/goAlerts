@@ -5,7 +5,9 @@ import (
 	"fmt"
 	temail "github.com/LazarenkoA/temp-Email"
 	"github.com/sirupsen/logrus"
+	"github.com/softlandia/cpd"
 	"github.com/ungerik/go-dry"
+	"golang.org/x/text/encoding/charmap"
 	"os"
 	"path/filepath"
 	"strings"
@@ -18,99 +20,72 @@ type mockE struct {
 
 func (m *mockE) GetData(string, ...string) ([]byte, error) {
 	txt := `{
-  "took": 3046,
-  "timed_out": false,
-  "_shards": {
-    "total": 45,
-    "successful": 45,
-    "skipped": 0,
-    "failed": 0
+  "took" : 1240,
+  "timed_out" : false,
+  "_shards" : {
+    "total" : 63,
+    "successful" : 63,
+    "skipped" : 0,
+    "failed" : 0
   },
-  "hits": {
-    "total": {
-      "value": 7,
-      "relation": "eq"
+  "hits" : {
+    "total" : {
+      "value" : 420,
+      "relation" : "eq"
     },
-    "max_score": 0,
-    "hits": [
-      {
-        "_index": "techlog-minimal-2022.03.25",
-        "_type": "_doc",
-        "_id": "220325171409.583001-8454168",
-        "_score": 0,
-        "_source": {}
-      },
-      {
-        "_index": "techlog-minimal-2022.03.25",
-        "_type": "_doc",
-        "_id": "220325172549.595000-4120471",
-        "_score": 0,
-        "_source": {}
-      },
-      {
-        "_index": "techlog-minimal-2022.03.25",
-        "_type": "_doc",
-        "_id": "220325173226.922000-5493484",
-        "_score": 0,
-        "_source": {}
-      },
-      {
-        "_index": "techlog-minimal-2022.03.25",
-        "_type": "_doc",
-        "_id": "220325170726.315000-2333283",
-        "_score": 0,
-        "_source": {}
-      },
-      {
-        "_index": "techlog-minimal-2022.03.25",
-        "_type": "_doc",
-        "_id": "220325171845.579000-11191818",
-        "_score": 0,
-        "_source": {}
-      },
-      {
-        "_index": "techlog-minimal-2022.03.25",
-        "_type": "_doc",
-        "_id": "220325171230.746000-7516437",
-        "_score": 0,
-        "_source": {}
-      },
-      {
-        "_index": "techlog-minimal-2022.03.25",
-        "_type": "_doc",
-        "_id": "220325171537.341000-13671696",
-        "_score": 0,
-        "_source": {}
-      }
-    ]
+    "max_score" : 0.0,
+    "hits" : []
   },
-  "aggregations": {
-    "errors": {
-      "doc_count_error_upper_bound": 0,
-      "sum_other_doc_count": 0,
-      "buckets": [
+  "aggregations" : {
+    "groupcontext" : {
+      "doc_count_error_upper_bound" : 5,
+      "sum_other_doc_count" : 150,
+      "buckets" : [
         {
-          "key": "key1",
-          "doc_count": 10,
-			"timelock" : {
-            	"value" : 56137900
-          	}
+          "key" : "PTG_Common ОбщийМодуль.PTG_ОбработкаСообщенийАЦК.Модуль : 286 : Блокировка.Заблокировать();'; LockTable=InfoRg32632.DIMS",
+          "doc_count" : 50,
+          "groupdb" : {
+            "doc_count_error_upper_bound" : 0,
+            "sum_other_doc_count" : 0,
+            "buckets" : [
+              {
+                "key" : "acc-n2",
+                "doc_count" : 38
+              },
+              {
+                "key" : "acc-n31",
+                "doc_count" : 8
+              }
+            ]
+          }
         },
         {
-          "key": "key2",
-          "doc_count": 100,
-			"timelock" : {
-            	"value" : 56137901
-          	}
-        },
-        {
-          "key": "key3",
-          "doc_count": 50,
-			"timelock" : {
-            	"value" : 56137902
-          	}
+          "key" : "Справочник.ИдентификаторыОбъектовМетаданных.МодульМенеджера : 1324 : Блокировка.Заблокировать();'; LockTable=Reference131.REFLOCK",
+          "doc_count" : 44,
+          "groupdb" : {
+            "doc_count_error_upper_bound" : 0,
+            "sum_other_doc_count" : 1,
+            "buckets" : [
+              {
+                "key" : "acc-n2",
+                "doc_count" : 12
+              },
+              {
+                "key" : "acc-n32",
+                "doc_count" : 8
+              },
+              {
+                "key" : "acc-n31",
+                "doc_count" : 5
+              },
+              {
+                "key" : "acc-n10",
+                "doc_count" : 4
+              }
+			]
+          }
         }
-      ]
+		]
     }
   }
 }`
@@ -237,10 +212,23 @@ func Test_Explorer(t *testing.T) {
 		os.Setenv("RULES_DIR", dir)
 		testClickhouse(t, outFile.Name())
 	})
-	t.Run("testElasticsearch", func(t *testing.T) {
+	t.Run("testElasticsearch-fileout", func(t *testing.T) {
 		outFile, _ := os.CreateTemp("", "*.txt")
 		outFile.Close()
 
+		batFile := createScriptFile(outFile.Name())
+		pathRule := elastic_rule(batFile)
+
+		dir := filepath.Dir(pathRule)
+
+		defer os.Remove(batFile)
+		defer os.Remove(outFile.Name())
+		defer os.RemoveAll(dir)
+
+		os.Setenv("RULES_DIR", dir)
+		testElasticsearch(t, outFile.Name(), nil)
+	})
+	t.Run("testElasticsearch-email", func(t *testing.T) {
 		email := ""
 		cResult := make(chan *temail.Result, 1) // размер канала обязательно должен быть 1 или больше
 		if err := createEmail(cResult); err == nil {
@@ -257,17 +245,12 @@ func Test_Explorer(t *testing.T) {
 			}()
 		}
 
-		batFile := createScriptFile(outFile.Name())
-		pathRule := elastic_rule(batFile, email)
-
+		pathRule := elastic_rule_with_email(email)
 		dir := filepath.Dir(pathRule)
-
-		defer os.Remove(batFile)
-		defer os.Remove(outFile.Name())
 		defer os.RemoveAll(dir)
 
 		os.Setenv("RULES_DIR", dir)
-		testElasticsearch(t, outFile.Name(), cResult)
+		testElasticsearch(t, "", cResult)
 	})
 }
 
@@ -327,22 +310,41 @@ func testElasticsearch(t *testing.T, outFile string, cResult chan *temail.Result
 		}
 	}()
 
-	// Ожидаем подтверждения
-	if r := <-cResult; r == nil || r.Error != nil {
-		t.Error("ошибка проверки оповещения на email, не дождались письма")
+	if cResult != nil {
+		// Ожидаем подтверждения
+		if r := <-cResult; r == nil || r.Error != nil {
+			t.Error("ошибка проверки оповещения на email, не дождались письма")
+		}
+	} else {
+		time.Sleep(time.Second)
 	}
 
 	cancel()
 
-	if !dry.FileExists(outFile) {
-		t.Error("файл out.txt не найден")
-	} else {
-		if str, err := dry.FileGetString(outFile); err != nil {
-			t.Error(err)
-		} else if strings.Trim(str, "\r\n\"\\ ") != "56137901, key2" {
-			t.Fatal("содержимое out.txt отличается от ожидаемого")
+	if outFile != "" {
+		if !dry.FileExists(outFile) {
+			t.Error("файл out.txt не найден")
+		} else {
+			if str, err := dry.FileGetString(outFile); err != nil {
+				t.Error(err)
+			} else if strings.Trim(normalizeEncoding(str), "\r\n\"\\ ") != "Выявлено 50 блокировок с ожиданием более 10 секунд, последняя строка стека PTG_Common ОбщийМодуль.PTG_ОбработкаСообщенийАЦК.Модуль : 286 : Блокировка.Заблокировать();'; LockTable=InfoRg32632.DIMS. Проблема наблюдается в базах acc-n2, acc-n31" {
+				t.Fatal("содержимое out.txt отличается от ожидаемого")
+			}
 		}
 	}
+}
+
+func normalizeEncoding(str string) string {
+	encoding := cpd.CodepageAutoDetect([]byte(str))
+
+	switch encoding {
+	case cpd.CP866:
+		encoder := charmap.CodePage866.NewDecoder()
+		if msg, err := encoder.String(str); err == nil {
+			return msg
+		}
+	}
+	return str
 }
 
 func elastic_config() string {
@@ -379,7 +381,7 @@ func createEmail(cResult chan *temail.Result) error {
 
 	newEmail := new(temail.OneSecmail).Create(&temail.TmpEmailConf{
 		Result:     cResult,          // канал для результата
-		Timeout:    time.Second * 30, // Таймаут, в течение которого будет ожидаться письмо с подтверждением
+		Timeout:    time.Second * 20, // Таймаут, в течение которого будет ожидаться письмо с подтверждением
 		Activation: factivation,      // функция для обработки входящих сообщений
 	})
 

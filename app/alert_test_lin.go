@@ -8,32 +8,55 @@ import (
 	"path"
 )
 
-func elastic_rule(shellFile, email string) string {
+func elastic_rule(shellFile string) string {
 	body := fmt.Sprintf(`index: "techlog-*" # индекс эластика
 rule_name: "Test_elastic" # имя правила
-ctxField: "aggregations.errors.buckets"
+ctxField: "aggregations.groupcontext.buckets"
 
 condition: # правила срабатывания оповещения
-  expression: "[timelock.value] > 10 && key == \"key2\"" 
+  expression: "doc_count >= 50" 
+
+notify:
+  cli:
+    command: %s
+    args:
+      - "Выявлено %%doc_count%% блокировок с ожиданием более 10 секунд, последняя строка стека %%key%%. Проблема наблюдается в базах %%groupdb.buckets.key%%"
+shedule: "@every 1m"
+
+# текст запроса в формате
+request: ''`, shellFile)
+
+	dirPath := path.Join(os.TempDir(), "elastic")
+	os.Mkdir(dirPath, os.ModePerm)
+	tmpFile, _ := os.CreateTemp(dirPath, "*.yaml")
+	tmpFile.WriteString(body)
+	tmpFile.Close()
+
+	return tmpFile.Name()
+}
+
+func elastic_rule_with_email(email string) string {
+	body := fmt.Sprintf(`index: "techlog-*" # индекс эластика
+rule_name: "Test_elastic" # имя правила
+ctxField: "aggregations.groupcontext.buckets"
+
+condition: # правила срабатывания оповещения
+  expression: "doc_count >= 50" 
 
 notify:
   email:
     smtp: "smtp.mail.ru:587"
     userName: "mika.temp25@mail.ru"
     pass: "8Qm2jF2KRBwBwGUb8n7x"
-    subject: "Ошибка в базе %%key%%"
-    templateMessage: "Ошибка в базе %%key%%"
+ 	subject: "Ошибка в базах %%groupdb.buckets.key%%"
+    templateMessage: "Выявлено %%doc_count%% блокировок с ожиданием более 10 секунд, последняя строка стека %%key%%. Проблема наблюдается в базах %%groupdb.buckets.key%%"
     recipients:
       - %s
       - "bademail"
-  cli:
-    comand: %s
-    args:
-      - "%%timelock.value%%, %%key%%"
 shedule: "@every 1m"
 
 # текст запроса в формате
-request: ''`, email, shellFile)
+request: ''`, email)
 
 	dirPath := path.Join(os.TempDir(), "elastic")
 	os.Mkdir(dirPath, os.ModePerm)
@@ -54,7 +77,7 @@ condition: # правила срабатывания оповещения
 
 notify:
   cli:
-    comand: %s
+    command: %s
     args:
       - "%%value%%, %%Name%%"
 shedule: "@every 1m"

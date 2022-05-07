@@ -12,9 +12,9 @@ import (
 type CLI struct {
 	BaseNotify
 
-	Comand string   `yaml:"comand"`
-	Args   []string `yaml:"args"`
-	Env    []string `yaml:"env"`
+	Command string   `yaml:"command"`
+	Args    []string `yaml:"args"`
+	Env     []string `yaml:"env"`
 }
 
 func (cli *CLI) Init(logger *logrus.Entry) *CLI {
@@ -59,12 +59,12 @@ func (cli *CLI) getParamsFromMsg(msg string, out map[string]interface{}) {
 }
 
 func (cli *CLI) run(args []string) {
-	cmd := exec.Command(cli.Comand, args...)
+	cmd := exec.Command(cli.Command, args...)
 	cmd.Stdout = new(bytes.Buffer)
 	cmd.Stderr = new(bytes.Buffer)
 
 	if err := cmd.Run(); err != nil {
-		cli.logger.WithError(err).WithField("Args", args).Errorf("ошибка выполнения команды %q", cli.Comand)
+		cli.logger.WithError(err).WithField("Args", args).Errorf("ошибка выполнения команды %q", cli.Command)
 		return
 	}
 	cli.logger.Debug("Stdout: ", cmd.Stdout.(*bytes.Buffer).String())
@@ -72,8 +72,8 @@ func (cli *CLI) run(args []string) {
 }
 
 func (cli *CLI) CheckParams() error {
-	cli.Comand = strings.Trim(cli.Comand, " ")
-	if len(cli.Comand) == 0 {
+	cli.Command = strings.Trim(cli.Command, " ")
+	if len(cli.Command) == 0 {
 		return errors.New("команда не заполнена")
 	}
 

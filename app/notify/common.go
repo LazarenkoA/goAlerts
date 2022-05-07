@@ -17,14 +17,22 @@ func (n *BaseNotify) buildMessages(pattern string, item interface{}) (result str
 	result = pattern
 	for p, _ := range param {
 		if _, ok := item.(map[string]interface{}); ok {
-			if value := GetValue(item.(map[string]interface{}), p); len(value) == 1 {
+			if value := GetValue(item.(map[string]interface{}), p); len(value) > 0 {
 
 				valueStr := ""
 				switch v := value[0].(type) {
 				case float64:
 					valueStr = strconv.FormatFloat(v, 'f', -1, 64)
 				case string:
-					valueStr = v
+					if len(value) == 1 {
+						valueStr = v
+					} else {
+						tmp := []string{}
+						for _, subitem := range value {
+							tmp = append(tmp, subitem.(string))
+						}
+						valueStr = strings.Join(tmp, ", ")
+					}
 				}
 
 				result = strings.Replace(result, "%"+p+"%", valueStr, -1)
