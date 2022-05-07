@@ -62,8 +62,8 @@ notify:
     command: "echo"  
   args:  
       - "Ошибка в базе %key%"   
-  env:  # переменные окружения
-    - "name=value"
+    env:  # переменные окружения
+      - "name=value"
   
 shedule: "*/5 * * * *" # расписание в формате cron или @every <duration> (https://pkg.go.dev/github.com/hanagantig/cron?utm_source=godoc#hdr-CRON_Expression_Format)  
 #shedule: "@every 8h"
