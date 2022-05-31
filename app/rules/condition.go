@@ -2,6 +2,7 @@ package rules
 
 import (
 	"errors"
+	"fmt"
 	nfy "github.com/LazarenkoA/goAlerts/app/notify"
 	"github.com/knetic/govaluate"
 	"github.com/sirupsen/logrus"
@@ -67,7 +68,7 @@ func (c *Сondition) filterByCondition(matches []interface{}) (resp []interface{
 
 				return float64(sp), nil
 			} else {
-				return nil, errors.New("spike: bad params")
+				return nil, errors.New(fmt.Sprintf("spike: bad params. Неверное количество параметров (параметры: %v)", args))
 			}
 		},
 		"average": func(args ...interface{}) (interface{}, error) {
